@@ -4,192 +4,376 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Angy y Jonas - Nuestro Amor en Memoria</title>
+    <title>Angy y Jonas: Nuestro Viaje de Amor</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
     <style>
-        .card { perspective: 1000px; cursor: pointer; }
-        .card-inner { transition: transform 0.6s; transform-style: preserve-3d; }
-        .card.flipped .card-inner { transform: rotateY(180deg); }
-        .card-front, .card-back { backface-visibility: hidden; position: absolute; width: 100%; height: 100%; border-radius: 12px; overflow: hidden; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
-        .card-back { transform: rotateY(180deg); background: white; border: 2px solid #ec4899; }
-        .card-front { background: linear-gradient(135deg, #f472b6, #db2777); color: white; font-size: 2rem; }
-        img { width: 100%; height: 100%; object-fit: cover; }
-        .turn-active { transform: scale(1.05); border-color: #f472b6 !important; box-shadow: 0 0 15px rgba(244, 114, 182, 0.5); opacity: 1 !important; }
-        .turn-inactive { opacity: 0.6; transform: scale(0.95); }
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #fdf2f8; /* Soft pink background */
+            background-image: radial-gradient(#fbcfe8 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        h1, h2, .romantic-font {
+            font-family: 'Pacifico', cursive;
+        }
+        
+        /* 3D Card Flip Styles */
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        .transform-style-3d {
+            transform-style: preserve-3d;
+        }
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+        
+        .card-inner {
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+        }
+        
+        /* Responsive Grid sizing */
+        .game-grid {
+            display: grid;
+            gap: 0.5rem;
+            grid-template-columns: repeat(4, 1fr); /* Mobile default */
+        }
+        
+        @media (min-width: 640px) {
+            .game-grid {
+                grid-template-columns: repeat(6, 1fr); /* 6x6 on larger screens */
+                gap: 0.75rem;
+            }
+        }
+        
+        .card {
+            aspect-ratio: 1 / 1;
+            cursor: pointer;
+        }
+
+        /* Sweet Alert / Modal custom animation */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .animate-pop {
+            animation: popIn 0.5s ease-out forwards;
+        }
     </style>
 </head>
-<body class="bg-rose-50 min-h-screen p-2 md:p-8 font-sans">
+<body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <div class="max-w-4xl mx-auto">
-        <header class="text-center mb-6">
-            <h1 class="text-3xl md:text-5xl font-bold text-pink-700 mb-2">Angy y Jonas</h1>
-            <p class="text-pink-500 italic text-sm md:text-base">Encuentra nuestras aventuras juntas ❤️</p>
-        </header>
+    <!-- Pantalla de Inicio -->
+    <div id="start-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center animate-pop">
+        <div class="text-rose-500 text-5xl mb-4">
+            <i class="fa-solid fa-heart-pulse"></i>
+        </div>
+        <h1 class="text-4xl text-rose-600 mb-6 leading-tight">Nuestro Viaje <br> de Amor</h1>
+        <p class="text-gray-600 mb-8">Un juego de memoria para revivir nuestros mejores momentos.</p>
+        
+        <div class="space-y-4 mb-8 text-left">
+            <div>
+                <label class="block text-sm font-bold text-rose-400 mb-1">Jugador 1</label>
+                <input type="text" id="player1-input" value="Angy" class="w-full px-4 py-2 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-500 transition">
+            </div>
+            <div>
+                <label class="block text-sm font-bold text-rose-400 mb-1">Jugador 2</label>
+                <input type="text" id="player2-input" value="Jonas" class="w-full px-4 py-2 border-2 border-rose-200 rounded-xl focus:outline-none focus:border-rose-500 transition">
+            </div>
+        </div>
+        
+        <button onclick="startGame()" class="w-full bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold py-3 px-6 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300">
+            ¡Comenzar a Jugar! <i class="fa-solid fa-play ml-2"></i>
+        </button>
+    </div>
 
-        <!-- Marcadores y Turnos -->
-        <div class="grid grid-cols-2 gap-4 mb-8 max-w-2xl mx-auto">
-            <div id="p1-board" class="bg-white p-3 rounded-xl border-4 border-transparent text-center transition-all duration-300 turn-active relative">
-                <span id="p1-indicator" class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md">¡Tu turno!</span>
-                <input type="text" id="p1-name" value="Angy" class="font-bold text-lg md:text-xl text-center w-full outline-none text-pink-600 bg-transparent mt-2">
-                <div class="text-3xl md:text-4xl font-black text-pink-500" id="p1-score">0</div>
+    <!-- Pantalla del Juego (Oculta al inicio) -->
+    <div id="game-screen" class="w-full max-w-4xl hidden flex-col items-center">
+        
+        <!-- Cabecera y Puntuaciones -->
+        <div class="w-full bg-white rounded-2xl shadow-md p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="text-center sm:text-left flex-1">
+                <h1 class="text-2xl text-rose-500 romantic-font">Angy y Jonas</h1>
+                <p class="text-xs text-gray-400">Encuentra las 18 parejas</p>
             </div>
             
-            <div id="p2-board" class="bg-white p-3 rounded-xl border-4 border-transparent text-center transition-all duration-300 turn-inactive relative">
-                <span id="p2-indicator" class="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-sky-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow-md hidden">¡Tu turno!</span>
-                <input type="text" id="p2-name" value="Jonas" class="font-bold text-lg md:text-xl text-center w-full outline-none text-sky-600 bg-transparent mt-2">
-                <div class="text-3xl md:text-4xl font-black text-sky-500" id="p2-score">0</div>
+            <div class="flex items-center gap-6 flex-1 justify-center">
+                <!-- Puntaje Jugador 1 -->
+                <div id="p1-board" class="flex flex-col items-center p-2 rounded-xl transition-colors duration-300 border-2 border-transparent">
+                    <span id="p1-name-display" class="font-bold text-gray-700">Angy</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-star text-yellow-400"></i>
+                        <span id="p1-score" class="text-xl font-bold text-rose-500">0</span>
+                    </div>
+                    <span class="text-xs text-gray-400" id="p1-wins">Victorias: 0</span>
+                </div>
+
+                <div class="text-rose-300 text-2xl">
+                    <i class="fa-solid fa-bolt"></i>
+                </div>
+
+                <!-- Puntaje Jugador 2 -->
+                <div id="p2-board" class="flex flex-col items-center p-2 rounded-xl transition-colors duration-300 border-2 border-transparent">
+                    <span id="p2-name-display" class="font-bold text-gray-700">Jonas</span>
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-star text-yellow-400"></i>
+                        <span id="p2-score" class="text-xl font-bold text-rose-500">0</span>
+                    </div>
+                    <span class="text-xs text-gray-400" id="p2-wins">Victorias: 0</span>
+                </div>
+            </div>
+
+            <div class="flex-1 flex justify-end">
+                <button onclick="resetGame()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                    <i class="fa-solid fa-rotate-right mr-1"></i> Reiniciar
+                </button>
             </div>
         </div>
 
-        <!-- Cuadrícula del juego 6x6 -->
-        <div id="game-grid" class="grid grid-cols-6 gap-1 md:gap-3 max-w-3xl mx-auto"></div>
+        <!-- Indicador de Turno -->
+        <div class="mb-4 bg-rose-100 text-rose-600 px-6 py-2 rounded-full font-bold shadow-sm animate-pulse" id="turn-indicator">
+            ¡Es el turno de Angy!
+        </div>
 
-        <div class="mt-8 text-center pb-8">
-            <button onclick="resetGame()" class="bg-pink-600 text-white px-8 py-3 rounded-full font-bold hover:bg-pink-700 transition shadow-lg transform hover:scale-105 active:scale-95">Reiniciar Juego</button>
+        <!-- Cuadrícula del Juego (6x6) -->
+        <div id="grid" class="game-grid w-full max-w-3xl perspective-1000">
+            <!-- Las cartas se inyectarán aquí con JavaScript -->
         </div>
     </div>
 
-    <!-- Letrero Modal de Victoria -->
-    <div id="win-modal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 backdrop-blur-sm px-4">
-        <div class="bg-white p-8 rounded-3xl text-center max-w-md w-full shadow-2xl border-4 border-pink-400 transform transition-all">
-            <div class="text-5xl mb-4">🏆❤️</div>
-            <h2 id="win-title" class="text-3xl font-bold text-pink-600 mb-4"></h2>
-            <p id="win-message" class="text-xl text-gray-700 mb-8 font-medium leading-relaxed"></p>
-            <button onclick="closeModalAndReset()" class="w-full bg-gradient-to-r from-pink-500 to-rose-500 text-white px-6 py-3 rounded-full font-bold text-lg hover:from-pink-600 hover:to-rose-600 transition shadow-lg transform hover:scale-105">Volver a jugar</button>
+    <!-- Modal de Victoria -->
+    <div id="win-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center relative overflow-hidden">
+            <!-- Confeti decorativo (CSS puro) -->
+            <div class="absolute -top-10 -left-10 text-6xl text-pink-300 opacity-50 rotate-12"><i class="fa-solid fa-heart"></i></div>
+            <div class="absolute -bottom-10 -right-10 text-6xl text-rose-300 opacity-50 -rotate-12"><i class="fa-solid fa-heart"></i></div>
+            
+            <h2 id="win-title" class="text-4xl text-rose-600 romantic-font mb-4 mt-4">¡Tenemos un ganador!</h2>
+            <p id="win-message" class="text-xl text-gray-700 mb-8 font-semibold"></p>
+            
+            <button onclick="playAgain()" class="bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold py-3 px-8 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300">
+                Jugar de Nuevo <i class="fa-solid fa-heart ml-2"></i>
+            </button>
         </div>
     </div>
 
     <script>
-        // Array de imágenes locales buscando en la misma carpeta raíz
-        // Esto creará rutas tipo: Carta1.jpg, Carta2.jpg ... Carta18.jpg
-        const sceneImages = [];
-        for (let i = 1; i <= 18; i++) {
-            sceneImages.push(`Carta${i}.jpg`);
+        // Variables de estado del juego
+        let player1 = { name: "Angy", score: 0, wins: 0 };
+        let player2 = { name: "Jonas", score: 0, wins: 0 };
+        let currentTurn = 1; // 1 para Jugador 1, 2 para Jugador 2
+        
+        const totalPairs = 18; // 6x6 grid = 36 cards = 18 pairs
+        let cards = [];
+        let flippedCards = [];
+        let lockBoard = false;
+        let matchedPairsCount = 0;
+
+        // Referencias al DOM
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const grid = document.getElementById('grid');
+        const turnIndicator = document.getElementById('turn-indicator');
+        const winModal = document.getElementById('win-modal');
+
+        // Función para iniciar el juego desde la pantalla de inicio
+        function startGame() {
+            const p1Input = document.getElementById('player1-input').value.trim();
+            const p2Input = document.getElementById('player2-input').value.trim();
+            
+            if (p1Input) player1.name = p1Input;
+            if (p2Input) player2.name = p2Input;
+
+            document.getElementById('p1-name-display').innerText = player1.name;
+            document.getElementById('p2-name-display').innerText = player2.name;
+
+            startScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('flex');
+
+            initBoard();
         }
 
-        let cards = [...sceneImages, ...sceneImages];
-        let flipped = [];
-        let scores = { p1: 0, p2: 0 };
-        let turn = 'p1';
-        let lockBoard = false;
-
-        function createGrid() {
-            const grid = document.getElementById('game-grid');
+        // Inicializar o reiniciar la mesa
+        function initBoard() {
             grid.innerHTML = '';
-            cards.sort(() => Math.random() - 0.5);
-            cards.forEach((imgSrc, index) => {
-                const card = document.createElement('div');
-                card.className = 'card w-full aspect-square';
-                card.innerHTML = `
-                    <div class="card-inner w-full h-full relative">
-                        <div class="card-front">❤️</div>
-                        <div class="card-back">
-                            <!-- Si la imagen no se encuentra, mostrará un cuadrado de error -->
-                            <img src="${imgSrc}" alt="Momento Romántico" loading="lazy" onerror="this.src='data:image/svg+xml;charset=UTF-8,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22100%25%22 height=%22100%25%22 viewBox=%220 0 100 100%22%3E%3Crect width=%22100%25%22 height=%22100%25%22 fill=%22%23ffcccc%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 fill=%22%23ff0000%22 font-size=%2210%22 font-family=%22Arial%22 text-anchor=%22middle%22 dominant-baseline=%22middle%22%3EError%3C/text%3E%3C/svg%3E'">
+            cards = [];
+            flippedCards = [];
+            lockBoard = false;
+            matchedPairsCount = 0;
+            player1.score = 0;
+            player2.score = 0;
+            currentTurn = 1; // Siempre empieza el jugador 1
+
+            updateScoreBoard();
+
+            // Crear array de parejas (1 al 18, dos veces)
+            for (let i = 1; i <= totalPairs; i++) {
+                cards.push(i, i);
+            }
+
+            // Mezclar cartas (Algoritmo Fisher-Yates)
+            for (let i = cards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [cards[i], cards[j]] = [cards[j], cards[i]];
+            }
+
+            // Renderizar cartas en el DOM
+            cards.forEach((cardValue, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.classList.add('card');
+                cardEl.dataset.value = cardValue;
+                cardEl.dataset.index = index;
+
+                // Estructura HTML de la carta (Frente y Reverso)
+                cardEl.innerHTML = `
+                    <div class="card-inner w-full h-full relative transform-style-3d shadow-sm hover:shadow-md rounded-xl">
+                        <!-- Parte Trasera (La que se ve antes de voltear) -->
+                        <div class="card-back absolute w-full h-full bg-gradient-to-br from-pink-200 to-rose-300 rounded-xl flex items-center justify-center backface-hidden border-2 border-white">
+                            <i class="fa-solid fa-heart text-white text-3xl opacity-80"></i>
+                        </div>
+                        <!-- Parte Frontal (La imagen, rotada 180deg por defecto en CSS) -->
+                        <div class="card-front absolute w-full h-full bg-white rounded-xl backface-hidden rotate-y-180 overflow-hidden border-2 border-rose-200">
+                            <img src="./Carta${cardValue}.jpg" 
+                                 onerror="this.onerror=null; this.src='https://placehold.co/200x200/ffe4e6/e11d48?text=Amor+${cardValue}'; this.parentElement.classList.add('p-2');" 
+                                 class="w-full h-full object-cover" 
+                                 alt="Memoria ${cardValue}">
                         </div>
                     </div>
                 `;
-                card.onclick = () => flipCard(card, index);
-                grid.appendChild(card);
+
+                cardEl.addEventListener('click', () => flipCard(cardEl));
+                grid.appendChild(cardEl);
             });
-            updateTurnUI();
         }
 
-        function updateTurnUI() {
-            const p1Board = document.getElementById('p1-board');
-            const p2Board = document.getElementById('p2-board');
-            const p1Ind = document.getElementById('p1-indicator');
-            const p2Ind = document.getElementById('p2-indicator');
-
-            if (turn === 'p1') {
-                p1Board.classList.replace('turn-inactive', 'turn-active');
-                p2Board.classList.replace('turn-active', 'turn-inactive');
-                p1Ind.classList.remove('hidden');
-                p2Ind.classList.add('hidden');
-            } else {
-                p2Board.classList.replace('turn-inactive', 'turn-active');
-                p1Board.classList.replace('turn-active', 'turn-inactive');
-                p2Ind.classList.remove('hidden');
-                p1Ind.classList.add('hidden');
-            }
-        }
-
-        function flipCard(card, index) {
+        // Lógica para voltear carta
+        function flipCard(cardEl) {
+            // Prevenir clicks si el tablero está bloqueado, si la carta ya está volteada o emparejada
             if (lockBoard) return;
-            if (card.classList.contains('flipped')) return;
+            if (cardEl.classList.contains('flipped') || cardEl.classList.contains('matched')) return;
 
-            card.classList.add('flipped');
-            flipped.push({ card, imgSrc: cards[index] });
+            // Añadir clase para la animación CSS
+            cardEl.querySelector('.card-inner').classList.add('rotate-y-180');
+            cardEl.classList.add('flipped');
 
-            if (flipped.length === 2) {
-                lockBoard = true;
-                setTimeout(checkMatch, 1000);
+            flippedCards.push(cardEl);
+
+            if (flippedCards.length === 2) {
+                checkForMatch();
             }
         }
 
-        function checkMatch() {
-            const [c1, c2] = flipped;
-            
-            if (c1.imgSrc === c2.imgSrc) {
-                scores[turn]++;
-                document.getElementById(`${turn}-score`).innerText = scores[turn];
-            } else {
-                c1.card.classList.remove('flipped');
-                c2.card.classList.remove('flipped');
-                turn = turn === 'p1' ? 'p2' : 'p1';
-            }
-            
-            flipped = [];
-            lockBoard = false;
-            updateTurnUI();
-            checkWin();
-        }
+        function checkForMatch() {
+            lockBoard = true;
+            const [card1, card2] = flippedCards;
+            const match = card1.dataset.value === card2.dataset.value;
 
-        function checkWin() {
-            if (document.querySelectorAll('.flipped').length === 36) {
-                const p1Name = document.getElementById('p1-name').value || 'Jugador 1';
-                const p2Name = document.getElementById('p2-name').value || 'Jugador 2';
-                
-                let title = "";
-                let msg = "";
+            if (match) {
+                // Hay coincidencia
+                card1.classList.add('matched');
+                card2.classList.add('matched');
+                matchedPairsCount++;
 
-                if (scores.p1 > scores.p2) {
-                    title = "¡Felicidades!";
-                    msg = `¡${p1Name} has Ganado!<br><br>No olvides que ${p2Name} te ama ❤️`;
-                } else if (scores.p2 > scores.p1) {
-                    title = "¡Felicidades!";
-                    msg = `¡${p2Name} has Ganado!<br><br>No olvides que ${p1Name} te ama ❤️`;
+                // Aumentar puntuación del jugador actual
+                if (currentTurn === 1) {
+                    player1.score++;
                 } else {
-                    title = "¡Qué conexión!";
-                    msg = `¡Es un empate perfecto!<br><br>Su amor está perfectamente equilibrado ❤️`;
+                    player2.score++;
                 }
 
-                document.getElementById('win-title').innerHTML = title;
-                document.getElementById('win-message').innerHTML = msg;
-                document.getElementById('win-modal').classList.remove('hidden');
+                updateScoreBoard();
+                
+                // Limpiar estado y verificar victoria. 
+                // NOTA: El turno NO cambia porque acertaron.
+                flippedCards = [];
+                lockBoard = false;
+
+                if (matchedPairsCount === totalPairs) {
+                    setTimeout(endGame, 500);
+                }
+
+            } else {
+                // No hay coincidencia, voltear de nuevo después de 1 segundo
+                setTimeout(() => {
+                    card1.querySelector('.card-inner').classList.remove('rotate-y-180');
+                    card2.querySelector('.card-inner').classList.remove('rotate-y-180');
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    
+                    // Cambiar turno
+                    currentTurn = currentTurn === 1 ? 2 : 1;
+                    updateScoreBoard();
+                    
+                    flippedCards = [];
+                    lockBoard = false;
+                }, 1200);
             }
         }
 
-        function closeModalAndReset() {
-            document.getElementById('win-modal').classList.add('hidden');
-            resetGame();
+        function updateScoreBoard() {
+            document.getElementById('p1-score').innerText = player1.score;
+            document.getElementById('p2-score').innerText = player2.score;
+            
+            document.getElementById('p1-wins').innerText = `Victorias: ${player1.wins}`;
+            document.getElementById('p2-wins').innerText = `Victorias: ${player2.wins}`;
+
+            const p1Board = document.getElementById('p1-board');
+            const p2Board = document.getElementById('p2-board');
+
+            if (currentTurn === 1) {
+                turnIndicator.innerHTML = `¡Es el turno de ${player1.name}!`;
+                p1Board.classList.add('bg-rose-100', 'border-rose-300');
+                p2Board.classList.remove('bg-rose-100', 'border-rose-300');
+            } else {
+                turnIndicator.innerHTML = `¡Es el turno de ${player2.name}!`;
+                p2Board.classList.add('bg-rose-100', 'border-rose-300');
+                p1Board.classList.remove('bg-rose-100', 'border-rose-300');
+            }
+        }
+
+        function endGame() {
+            const winTitle = document.getElementById('win-title');
+            const winMessage = document.getElementById('win-message');
+            
+            if (player1.score > player2.score) {
+                player1.wins++;
+                winTitle.innerText = "¡Felicidades!";
+                winMessage.innerHTML = `¡<span class="text-rose-500 font-bold">${player1.name}</span> has Ganado! <br><br> <span class="text-sm text-gray-500">No olvides que ${player2.name} te ama ❤️</span>`;
+            } else if (player2.score > player1.score) {
+                player2.wins++;
+                winTitle.innerText = "¡Felicidades!";
+                winMessage.innerHTML = `¡<span class="text-rose-500 font-bold">${player2.name}</span> has Ganado! <br><br> <span class="text-sm text-gray-500">No olvides que ${player1.name} te ama ❤️</span>`;
+            } else {
+                winTitle.innerText = "¡Un Empate Perfecto!";
+                winMessage.innerHTML = `Ambos tienen la misma puntuación. <br><br> <span class="text-sm text-gray-500">Su amor está perfectamente equilibrado ❤️</span>`;
+            }
+
+            updateScoreBoard();
+            winModal.classList.remove('hidden');
+            winModal.classList.add('flex');
+        }
+
+        function playAgain() {
+            winModal.classList.remove('flex');
+            winModal.classList.add('hidden');
+            initBoard();
         }
 
         function resetGame() {
-            flipped = [];
-            scores = { p1: 0, p2: 0 };
-            document.getElementById('p1-score').innerText = 0;
-            document.getElementById('p2-score').innerText = 0;
-            turn = 'p1';
-            lockBoard = false;
-            createGrid();
+            if(confirm("¿Están seguros de que quieren reiniciar la partida actual?")) {
+                initBoard();
+            }
         }
 
-        createGrid();
     </script>
 </body>
 </html>
 
-
 ```
-
