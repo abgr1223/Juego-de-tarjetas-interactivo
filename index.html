@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Pacifico&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+    <!-- Librería para conexión en tiempo real sin base de datos -->
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
     <style>
         body {
             font-family: 'Nunito', sans-serif;
@@ -41,10 +44,7 @@
             }
         }
         
-        .card {
-            aspect-ratio: 1 / 1;
-            cursor: pointer;
-        }
+        .card { aspect-ratio: 1 / 1; cursor: pointer; }
 
         @keyframes popIn {
             0% { transform: scale(0.8); opacity: 0; }
@@ -52,7 +52,6 @@
         }
         .animate-pop { animation: popIn 0.5s ease-out forwards; }
         
-        /* Efecto de deshabilitado cuando no es tu turno */
         .not-my-turn {
             opacity: 0.8;
             pointer-events: none;
@@ -61,34 +60,52 @@
 </head>
 <body class="min-h-screen flex flex-col items-center justify-center p-4">
 
-    <!-- Pantalla de Carga de Firebase -->
-    <div id="loading-screen" class="fixed inset-0 bg-[#fdf2f8] z-50 flex flex-col items-center justify-center">
-        <i class="fa-solid fa-heart fa-beat text-5xl text-rose-500 mb-4"></i>
-        <h2 class="text-2xl text-rose-600 romantic-font">Conectando nuestros corazones...</h2>
-        <p class="text-gray-500 mt-2">Sincronizando el juego online</p>
-    </div>
-
-    <!-- Pantalla de Selección de Personaje -->
-    <div id="role-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center animate-pop hidden">
+    <!-- 1. Pantalla de Selección de Personaje -->
+    <div id="role-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center animate-pop">
         <div class="text-rose-500 text-5xl mb-4">
-            <i class="fa-solid fa-earth-americas"></i>
+            <i class="fa-solid fa-heart"></i>
         </div>
         <h1 class="text-4xl text-rose-600 mb-6 leading-tight">Nuestro Viaje <br> de Amor</h1>
-        <p class="text-gray-600 mb-8 font-semibold">¿Quién se está conectando para jugar?</p>
+        <p class="text-gray-600 mb-8 font-semibold">¿Quién eres?</p>
         
         <div class="space-y-4">
-            <button onclick="selectRole(1)" class="w-full bg-pink-100 hover:bg-pink-200 border-2 border-pink-300 text-pink-700 font-bold py-4 px-6 rounded-xl transition-all duration-300 text-xl flex items-center justify-center gap-3">
-                <i class="fa-solid fa-user-astronaut"></i> Soy Angy
+            <button onclick="initAngy()" class="w-full bg-pink-100 hover:bg-pink-200 border-2 border-pink-300 text-pink-700 font-bold py-4 px-6 rounded-xl transition-all duration-300 text-xl flex flex-col items-center justify-center gap-1">
+                <span><i class="fa-solid fa-crown"></i> Soy Angy</span>
+                <span class="text-sm font-normal">(Crearé la sala para jugar)</span>
             </button>
-            <button onclick="selectRole(2)" class="w-full bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-700 font-bold py-4 px-6 rounded-xl transition-all duration-300 text-xl flex items-center justify-center gap-3">
-                <i class="fa-solid fa-user-ninja"></i> Soy Jonas
+            <button onclick="initJonas()" class="w-full bg-blue-100 hover:bg-blue-200 border-2 border-blue-300 text-blue-700 font-bold py-4 px-6 rounded-xl transition-all duration-300 text-xl flex flex-col items-center justify-center gap-1">
+                <span><i class="fa-solid fa-user-astronaut"></i> Soy Jonas</span>
+                <span class="text-sm font-normal">(Me uniré a la sala de Angy)</span>
             </button>
         </div>
+    </div>
+
+    <!-- 2. Pantalla de Espera para Angy -->
+    <div id="host-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center animate-pop hidden">
+        <h2 class="text-2xl text-rose-600 romantic-font mb-4">Sala Creada 💖</h2>
+        <p class="text-gray-600 mb-4">Envíale este código a Jonas para que se conecte:</p>
+        <div class="bg-rose-100 border-2 border-rose-300 rounded-xl p-4 mb-6">
+            <span id="room-code-display" class="text-4xl font-bold text-rose-600 tracking-widest">...</span>
+        </div>
+        <div class="flex items-center justify-center gap-3 text-gray-500">
+            <i class="fa-solid fa-circle-notch fa-spin text-rose-400"></i> Esperando a que Jonas se conecte...
+        </div>
+    </div>
+
+    <!-- 3. Pantalla de Ingreso para Jonas -->
+    <div id="client-screen" class="w-full max-w-md bg-white rounded-3xl shadow-xl p-8 text-center animate-pop hidden">
+        <h2 class="text-2xl text-blue-600 romantic-font mb-4">Unirse a Angy 🚀</h2>
+        <p class="text-gray-600 mb-4">Ingresa el código de 4 números que te dio Angy:</p>
+        <input type="text" id="room-code-input" maxlength="4" class="w-full text-center text-4xl font-bold tracking-widest px-4 py-4 border-2 border-blue-200 rounded-xl focus:outline-none focus:border-blue-500 transition mb-6" placeholder="0000">
+        <button onclick="connectToAngy()" id="connect-btn" class="w-full bg-blue-500 text-white font-bold py-3 px-6 rounded-xl hover:bg-blue-600 transition-all duration-300">
+            Conectar <i class="fa-solid fa-link ml-2"></i>
+        </button>
+        <p id="connection-error" class="text-red-500 text-sm mt-4 hidden">Código incorrecto o Angy ya no está en la sala.</p>
     </div>
 
     <!-- Pantalla del Juego -->
     <div id="game-screen" class="w-full max-w-4xl hidden flex-col items-center">
-        <!-- Cabecera y Puntuaciones -->
+        <!-- Cabecera -->
         <div class="w-full bg-white rounded-2xl shadow-md p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4 border-b-4 border-rose-300">
             <div class="text-center sm:text-left flex-1">
                 <h1 class="text-2xl text-rose-500 romantic-font">Angy y Jonas</h1>
@@ -96,7 +113,6 @@
             </div>
             
             <div class="flex items-center gap-6 flex-1 justify-center">
-                <!-- Puntaje Angy -->
                 <div id="p1-board" class="flex flex-col items-center p-2 rounded-xl transition-colors duration-300 border-2 border-transparent">
                     <span class="font-bold text-gray-700">Angy</span>
                     <div class="flex items-center gap-2">
@@ -110,30 +126,29 @@
                     <i class="fa-solid fa-bolt"></i>
                 </div>
 
-                <!-- Puntaje Jonas -->
                 <div id="p2-board" class="flex flex-col items-center p-2 rounded-xl transition-colors duration-300 border-2 border-transparent">
                     <span class="font-bold text-gray-700">Jonas</span>
                     <div class="flex items-center gap-2">
-                        <i class="fa-solid fa-heart text-rose-400"></i>
-                        <span id="p2-score" class="text-xl font-bold text-rose-500">0</span>
+                        <i class="fa-solid fa-heart text-blue-400"></i>
+                        <span id="p2-score" class="text-xl font-bold text-blue-500">0</span>
                     </div>
                     <span class="text-xs text-gray-400" id="p2-wins">Victorias: 0</span>
                 </div>
             </div>
 
             <div class="flex-1 flex justify-end">
-                <button onclick="showResetConfirm()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold transition">
+                <button onclick="requestReset()" class="bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg font-semibold transition text-sm">
                     <i class="fa-solid fa-rotate-right mr-1"></i> Reiniciar
                 </button>
             </div>
         </div>
 
         <!-- Indicador de Turno -->
-        <div class="mb-4 bg-rose-100 text-rose-700 px-6 py-2 rounded-full font-bold shadow-sm transition-all" id="turn-indicator">
-            Esperando estado del juego...
+        <div class="mb-4 bg-rose-100 text-rose-700 px-6 py-2 rounded-full font-bold shadow-sm transition-all text-center w-full max-w-sm" id="turn-indicator">
+            Iniciando juego...
         </div>
 
-        <!-- Cuadrícula del Juego -->
+        <!-- Cuadrícula -->
         <div id="grid-container" class="w-full flex justify-center">
             <div id="grid" class="game-grid w-full max-w-3xl perspective-1000">
                 <!-- Cartas inyectadas por JS -->
@@ -144,222 +159,301 @@
     <!-- Modal de Victoria -->
     <div id="win-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
         <div class="bg-white rounded-3xl shadow-2xl p-8 max-w-lg w-full text-center relative overflow-hidden">
-            <div class="absolute -top-10 -left-10 text-6xl text-pink-300 opacity-50 rotate-12"><i class="fa-solid fa-heart"></i></div>
-            <div class="absolute -bottom-10 -right-10 text-6xl text-rose-300 opacity-50 -rotate-12"><i class="fa-solid fa-heart"></i></div>
-            
             <h2 id="win-title" class="text-4xl text-rose-600 romantic-font mb-4 mt-4">¡Tenemos un ganador!</h2>
             <p id="win-message" class="text-xl text-gray-700 mb-8 font-semibold"></p>
-            
-            <button onclick="initializeBoardOnDB()" class="bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold py-3 px-8 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300">
+            <button onclick="requestReset()" class="bg-gradient-to-r from-rose-400 to-pink-500 text-white font-bold py-3 px-8 rounded-xl hover:shadow-lg hover:scale-105 transition-all duration-300">
                 Jugar de Nuevo <i class="fa-solid fa-heart ml-2"></i>
             </button>
         </div>
     </div>
 
-    <!-- Modal de Confirmación de Reinicio -->
-    <div id="reset-modal" class="fixed inset-0 bg-black/50 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-        <div class="bg-white rounded-3xl shadow-xl p-8 max-w-sm w-full text-center">
-            <i class="fa-solid fa-triangle-exclamation text-4xl text-yellow-500 mb-4"></i>
-            <h3 class="text-2xl font-bold text-gray-800 mb-2">¿Reiniciar partida?</h3>
-            <p class="text-gray-600 mb-6">Esto reiniciará el tablero para ambos jugadores en este momento.</p>
-            <div class="flex gap-4 justify-center">
-                <button onclick="hideResetConfirm()" class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-gray-700 transition">Cancelar</button>
-                <button onclick="confirmReset()" class="px-4 py-2 bg-rose-500 hover:bg-rose-600 rounded-lg font-bold text-white transition">Sí, reiniciar</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script principal con Firebase y Lógica Multijugador -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Configuración Firebase del entorno inmersivo
-        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+    <script>
+        // Variables de Red (PeerJS)
+        let peer = null;
+        let connection = null;
+        let myRole = 0; // 1 = Angy (Host), 2 = Jonas (Client)
         
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        // Variables Globales
-        let myRole = null; // 1 (Angy) o 2 (Jonas)
-        let gameDocRef = null;
-        let globalGameState = null;
-        const totalPairs = 18; // 36 cartas
+        // Variables de Juego
+        const totalPairs = 18;
+        let gameState = {
+            board: [],
+            cardStates: [], // {flipped: false, matched: false}
+            turn: 1, // Empieza Angy
+            scores: { p1: 0, p2: 0 },
+            wins: { p1: 0, p2: 0 },
+            lockBoard: false,
+            flippedCards: [],
+            winner: null
+        };
 
         // Referencias DOM
-        const loadingScreen = document.getElementById('loading-screen');
         const roleScreen = document.getElementById('role-screen');
+        const hostScreen = document.getElementById('host-screen');
+        const clientScreen = document.getElementById('client-screen');
         const gameScreen = document.getElementById('game-screen');
         const grid = document.getElementById('grid');
         const gridContainer = document.getElementById('grid-container');
         const turnIndicator = document.getElementById('turn-indicator');
         const winModal = document.getElementById('win-modal');
-        const resetModal = document.getElementById('reset-modal');
-        const myIdentityLabel = document.getElementById('my-identity-label');
 
-        // 1. Inicializar Autenticación y luego mostrar selección de rol
-        async function initAuth() {
-            try {
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-            } catch (error) {
-                console.error("Error de autenticación:", error);
-                turnIndicator.innerText = "Error de conexión. Intenta recargar la página.";
-            }
+        // ==========================================
+        // 1. LÓGICA DE CONEXIÓN
+        // ==========================================
+
+        function initAngy() {
+            myRole = 1;
+            roleScreen.classList.add('hidden');
+            hostScreen.classList.remove('hidden');
+
+            // Generar código de 4 dígitos
+            const shortCode = Math.floor(1000 + Math.random() * 9000).toString();
+            document.getElementById('room-code-display').innerText = shortCode;
+            
+            // Prefijo secreto para evitar cruces con otros usuarios de PeerJS
+            const peerId = 'angyjonas-' + shortCode; 
+            
+            peer = new Peer(peerId);
+
+            peer.on('connection', (conn) => {
+                connection = conn;
+                setupConnectionListeners();
+                
+                // Jonas se conectó, iniciar juego y enviar tablero
+                setTimeout(() => {
+                    hostScreen.classList.add('hidden');
+                    gameScreen.classList.remove('hidden');
+                    gameScreen.classList.add('flex');
+                    document.getElementById('my-identity-label').innerText = 'Jugando como: Angy 👑';
+                    generateNewBoard(); 
+                }, 1000);
+            });
         }
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                // Autenticado correctamente
-                loadingScreen.classList.add('hidden');
-                roleScreen.classList.remove('hidden');
-                
-                // Configurar la referencia del documento compartido (Path estricto cumpliendo la regla)
-                // Usamos un ID fijo de sala "angy_jonas_room" para que ambos se conecten al mismo juego automáticamente.
-                gameDocRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', 'angy_jonas_room');
-            }
-        });
-
-        initAuth();
-
-        // 2. Selección de Rol e inicio de escucha a la base de datos
-        window.selectRole = (roleNum) => {
-            myRole = roleNum;
+        function initJonas() {
+            myRole = 2;
             roleScreen.classList.add('hidden');
-            gameScreen.classList.remove('hidden');
-            gameScreen.classList.add('flex');
+            clientScreen.classList.remove('hidden');
+            peer = new Peer(); // ID aleatorio para Jonas
+        }
+
+        function connectToAngy() {
+            const codeInput = document.getElementById('room-code-input').value.trim();
+            const btn = document.getElementById('connect-btn');
             
-            myIdentityLabel.innerText = `Jugando como: ${myRole === 1 ? 'Angy' : 'Jonas'} ${myRole === 1 ? '👩🏻' : '👱🏼‍♂️'}`;
+            if(codeInput.length !== 4) return;
+            
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando...';
+            btn.disabled = true;
+            
+            const peerId = 'angyjonas-' + codeInput;
+            connection = peer.connect(peerId);
 
-            // Empezar a escuchar cambios en tiempo real
-            onSnapshot(gameDocRef, (docSnapshot) => {
-                if (!docSnapshot.exists()) {
-                    // Si el juego no existe en la nube, el primero que entra lo inicializa
-                    if(myRole === 1 || myRole === 2) {
-                        initializeBoardOnDB();
-                    }
-                } else {
-                    // Actualizar UI con los datos de la nube
-                    globalGameState = docSnapshot.data();
-                    renderGame(globalGameState);
-                }
-            }, (error) => {
-                console.error("Error escuchando BD:", error);
+            connection.on('open', () => {
+                // Conexión exitosa
+                setupConnectionListeners();
+                clientScreen.classList.add('hidden');
+                gameScreen.classList.remove('hidden');
+                gameScreen.classList.add('flex');
+                document.getElementById('my-identity-label').innerText = 'Jugando como: Jonas 🚀';
             });
-        };
 
-        // 3. Crear un tablero nuevo y subirlo a Firebase
-        window.initializeBoardOnDB = async () => {
-            // Ocultar modal de victoria si estaba abierto
-            winModal.classList.add('hidden');
-            winModal.classList.remove('flex');
+            connection.on('error', (err) => {
+                document.getElementById('connection-error').classList.remove('hidden');
+                btn.innerHTML = 'Conectar <i class="fa-solid fa-link ml-2"></i>';
+                btn.disabled = false;
+            });
+            
+            setTimeout(() => {
+                if(!connection.open) {
+                    document.getElementById('connection-error').classList.remove('hidden');
+                    btn.innerHTML = 'Conectar <i class="fa-solid fa-link ml-2"></i>';
+                    btn.disabled = false;
+                }
+            }, 5000);
+        }
 
-            // Crear array de parejas y mezclar
+        function setupConnectionListeners() {
+            connection.on('data', (data) => {
+                if (data.type === 'SYNC_STATE') {
+                    // Actualización completa del estado enviada por el Host (Angy) o para reiniciar
+                    gameState = data.state;
+                    buildBoardDOM();
+                    updateVisuals();
+                } else if (data.type === 'MOVE') {
+                    // El otro jugador hizo un movimiento
+                    processMove(data.index);
+                } else if (data.type === 'REQUEST_RESET') {
+                    // Si el otro pide reiniciar
+                    if(myRole === 1) { // Solo el host genera el tablero
+                        generateNewBoard();
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // 2. LÓGICA DEL JUEGO
+        // ==========================================
+
+        // Solo llamado por Angy (Host)
+        function generateNewBoard() {
             let board = [];
-            for (let i = 1; i <= totalPairs; i++) {
-                board.push(i, i);
-            }
+            for (let i = 1; i <= totalPairs; i++) board.push(i, i);
+            
+            // Mezclar
             for (let i = board.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [board[i], board[j]] = [board[j], board[i]];
             }
 
-            // Estado inicial de las cartas
-            let cardStates = board.map(() => ({ flipped: false, matched: false }));
+            gameState.board = board;
+            gameState.cardStates = board.map(() => ({ flipped: false, matched: false }));
+            gameState.turn = 1; // Siempre inicia Angy al reiniciar
+            gameState.scores = { p1: 0, p2: 0 };
+            gameState.flippedCards = [];
+            gameState.lockBoard = false;
+            gameState.winner = null;
 
-            // Conservar las victorias si ya existía el juego
-            let wins = { p1: 0, p2: 0 };
-            if (globalGameState && globalGameState.wins) {
-                wins = globalGameState.wins;
+            winModal.classList.add('hidden');
+            winModal.classList.remove('flex');
+
+            buildBoardDOM();
+            updateVisuals();
+
+            // Enviar estado inicial a Jonas
+            connection.send({ type: 'SYNC_STATE', state: gameState });
+        }
+
+        function buildBoardDOM() {
+            grid.innerHTML = '';
+            gameState.board.forEach((cardValue, index) => {
+                const cardEl = document.createElement('div');
+                cardEl.classList.add('card');
+                cardEl.id = `card-${index}`;
+                
+                cardEl.innerHTML = `
+                    <div class="card-inner w-full h-full relative transform-style-3d shadow-sm hover:shadow-md rounded-xl transition-all duration-500">
+                        <div class="card-back absolute w-full h-full bg-gradient-to-br from-pink-200 to-rose-300 rounded-xl flex items-center justify-center backface-hidden border-2 border-white">
+                            <i class="fa-solid fa-heart text-white text-3xl opacity-80"></i>
+                        </div>
+                        <div class="card-front absolute w-full h-full bg-white rounded-xl backface-hidden rotate-y-180 overflow-hidden border-2 border-rose-200">
+                            <img src="./Carta${cardValue}.jpg" 
+                                 onerror="this.onerror=null; this.src='https://placehold.co/200x200/ffe4e6/e11d48?text=Amor+${cardValue}'; this.parentElement.classList.add('p-2');" 
+                                 class="w-full h-full object-cover" 
+                                 alt="Memoria ${cardValue}">
+                        </div>
+                    </div>
+                `;
+                cardEl.addEventListener('click', () => handleCardClick(index));
+                grid.appendChild(cardEl);
+            });
+        }
+
+        function handleCardClick(index) {
+            // Validaciones de turno local
+            if (gameState.turn !== myRole) return;
+            if (gameState.lockBoard) return;
+            if (gameState.cardStates[index].flipped || gameState.cardStates[index].matched) return;
+
+            // Procesar localmente
+            processMove(index);
+            // Avisar al otro jugador
+            connection.send({ type: 'MOVE', index: index });
+        }
+
+        function processMove(index) {
+            // Voltear la carta en el estado lógico
+            gameState.cardStates[index].flipped = true;
+            gameState.flippedCards.push(index);
+            updateVisuals();
+
+            if (gameState.flippedCards.length === 2) {
+                gameState.lockBoard = true;
+                
+                const idx1 = gameState.flippedCards[0];
+                const idx2 = gameState.flippedCards[1];
+                const val1 = gameState.board[idx1];
+                const val2 = gameState.board[idx2];
+
+                setTimeout(() => {
+                    if (val1 === val2) {
+                        // Coincidencia
+                        gameState.cardStates[idx1].matched = true;
+                        gameState.cardStates[idx2].matched = true;
+                        
+                        if (gameState.turn === 1) gameState.scores.p1++;
+                        else gameState.scores.p2++;
+
+                        checkWinCondition();
+                    } else {
+                        // No coinciden, voltear de nuevo y cambiar turno
+                        gameState.cardStates[idx1].flipped = false;
+                        gameState.cardStates[idx2].flipped = false;
+                        gameState.turn = gameState.turn === 1 ? 2 : 1;
+                    }
+
+                    gameState.flippedCards = [];
+                    gameState.lockBoard = false;
+                    updateVisuals();
+                }, 1200); // 1.2s para memorizar
             }
+        }
 
-            const newGameState = {
-                board: board,
-                cardStates: cardStates,
-                turn: 1, // Siempre empieza Angy (1)
-                scores: { p1: 0, p2: 0 },
-                wins: wins,
-                flippedCards: [],
-                lockBoard: false,
-                winner: null
-            };
+        function checkWinCondition() {
+            if (gameState.scores.p1 + gameState.scores.p2 === totalPairs) {
+                if (gameState.scores.p1 > gameState.scores.p2) {
+                    gameState.winner = 1;
+                    gameState.wins.p1++;
+                } else if (gameState.scores.p2 > gameState.scores.p1) {
+                    gameState.winner = 2;
+                    gameState.wins.p2++;
+                } else {
+                    gameState.winner = 'draw';
+                }
+            }
+        }
 
-            await setDoc(gameDocRef, newGameState);
-        };
-
-        // 4. Renderizar el juego basado estrictamente en los datos de la nube
-        function renderGame(state) {
+        function updateVisuals() {
             // Actualizar Marcadores
-            document.getElementById('p1-score').innerText = state.scores.p1;
-            document.getElementById('p2-score').innerText = state.scores.p2;
-            document.getElementById('p1-wins').innerText = `Victorias: ${state.wins.p1}`;
-            document.getElementById('p2-wins').innerText = `Victorias: ${state.wins.p2}`;
+            document.getElementById('p1-score').innerText = gameState.scores.p1;
+            document.getElementById('p2-score').innerText = gameState.scores.p2;
+            document.getElementById('p1-wins').innerText = `Victorias: ${gameState.wins.p1}`;
+            document.getElementById('p2-wins').innerText = `Victorias: ${gameState.wins.p2}`;
 
             const p1Board = document.getElementById('p1-board');
             const p2Board = document.getElementById('p2-board');
 
             // Actualizar UI de turnos
-            if (state.turn === 1) {
-                turnIndicator.innerHTML = myRole === 1 ? '¡Es tu turno, Angy! 💖' : 'Turno de Angy... esperando movimiento ⏳';
-                turnIndicator.className = 'mb-4 px-6 py-2 rounded-full font-bold shadow-sm transition-all bg-rose-100 text-rose-700';
-                p1Board.classList.add('bg-rose-100', 'border-rose-300');
-                p2Board.classList.remove('bg-rose-100', 'border-rose-300');
+            if (gameState.turn === 1) {
+                turnIndicator.innerHTML = myRole === 1 ? '¡Es tu turno, Angy! 💖' : 'Turno de Angy... esperando ⏳';
+                turnIndicator.className = 'mb-4 px-6 py-2 rounded-full font-bold shadow-sm transition-all text-center w-full max-w-sm bg-pink-100 text-pink-700';
+                p1Board.classList.add('bg-pink-100', 'border-pink-300');
+                p2Board.classList.remove('bg-blue-100', 'border-blue-300');
             } else {
-                turnIndicator.innerHTML = myRole === 2 ? '¡Es tu turno, Jonas! 💖' : 'Turno de Jonas... esperando movimiento ⏳';
-                turnIndicator.className = 'mb-4 px-6 py-2 rounded-full font-bold shadow-sm transition-all bg-blue-100 text-blue-700';
+                turnIndicator.innerHTML = myRole === 2 ? '¡Es tu turno, Jonas! 🚀' : 'Turno de Jonas... esperando ⏳';
+                turnIndicator.className = 'mb-4 px-6 py-2 rounded-full font-bold shadow-sm transition-all text-center w-full max-w-sm bg-blue-100 text-blue-700';
                 p2Board.classList.add('bg-blue-100', 'border-blue-300');
-                p1Board.classList.remove('bg-blue-100', 'border-blue-300');
+                p1Board.classList.remove('bg-pink-100', 'border-pink-300');
             }
 
-            // Deshabilitar la cuadrícula si no es mi turno o si el tablero está bloqueado globalmente
-            if (state.turn !== myRole || state.lockBoard) {
+            // Deshabilitar la cuadrícula si no es mi turno
+            if (gameState.turn !== myRole || gameState.lockBoard) {
                 gridContainer.classList.add('not-my-turn');
             } else {
                 gridContainer.classList.remove('not-my-turn');
             }
 
-            // Si es la primera vez que se renderiza el tablero o cambió por completo
-            if (grid.children.length === 0 || grid.children.length !== state.board.length) {
-                grid.innerHTML = '';
-                state.board.forEach((cardValue, index) => {
-                    const cardEl = document.createElement('div');
-                    cardEl.classList.add('card');
-                    cardEl.dataset.index = index;
-                    
-                    cardEl.innerHTML = `
-                        <div class="card-inner w-full h-full relative transform-style-3d shadow-sm hover:shadow-md rounded-xl transition-all duration-500">
-                            <div class="card-back absolute w-full h-full bg-gradient-to-br from-pink-200 to-rose-300 rounded-xl flex items-center justify-center backface-hidden border-2 border-white">
-                                <i class="fa-solid fa-heart text-white text-3xl opacity-80"></i>
-                            </div>
-                            <div class="card-front absolute w-full h-full bg-white rounded-xl backface-hidden rotate-y-180 overflow-hidden border-2 border-rose-200">
-                                <img src="./Carta${cardValue}.jpg" 
-                                     onerror="this.onerror=null; this.src='https://placehold.co/200x200/ffe4e6/e11d48?text=Amor+${cardValue}'; this.parentElement.classList.add('p-2');" 
-                                     class="w-full h-full object-cover" 
-                                     alt="Memoria ${cardValue}">
-                            </div>
-                        </div>
-                    `;
-                    cardEl.addEventListener('click', () => handleCardClick(index));
-                    grid.appendChild(cardEl);
-                });
-            }
-
-            // Actualizar el estado visual de cada carta existente
-            Array.from(grid.children).forEach((cardEl, index) => {
+            // Actualizar Cartas
+            gameState.cardStates.forEach((state, i) => {
+                const cardEl = document.getElementById(`card-${i}`);
+                if (!cardEl) return;
+                
                 const inner = cardEl.querySelector('.card-inner');
-                const isFlipped = state.cardStates[index].flipped;
-                const isMatched = state.cardStates[index].matched;
-
-                if (isFlipped || isMatched) {
+                
+                if (state.flipped || state.matched) {
                     inner.classList.add('rotate-y-180');
-                    if (isMatched) {
-                        inner.classList.add('opacity-50', 'scale-95'); // Efecto visual cuando ya encontraron pareja
+                    if (state.matched) {
+                        inner.classList.add('opacity-50', 'scale-95');
                     } else {
                         inner.classList.remove('opacity-50', 'scale-95');
                     }
@@ -368,96 +462,25 @@
                 }
             });
 
-            // Mostrar modal de victoria si el juego terminó
-            if (state.winner) {
-                showWinModal(state);
+            if (gameState.winner) {
+                showWinModal();
+            } else {
+                winModal.classList.add('hidden');
+                winModal.classList.remove('flex');
             }
         }
 
-        // 5. Lógica al hacer clic en una carta
-        async function handleCardClick(index) {
-            // Validaciones de seguridad
-            if (!globalGameState) return;
-            if (globalGameState.turn !== myRole) return; // No es tu turno
-            if (globalGameState.lockBoard) return; // Tablero bloqueado temporalmente
-            if (globalGameState.cardStates[index].flipped || globalGameState.cardStates[index].matched) return; // Ya está volteada
-
-            // Clonar estado para actualizarlo
-            let newState = JSON.parse(JSON.stringify(globalGameState));
-            
-            // Voltear la carta
-            newState.cardStates[index].flipped = true;
-            newState.flippedCards.push(index);
-
-            if (newState.flippedCards.length === 1) {
-                // Solo se volteó una carta, actualizar BD
-                await setDoc(gameDocRef, newState);
-            } 
-            else if (newState.flippedCards.length === 2) {
-                // Se voltearon dos cartas. Bloqueamos el tablero inmediatamente en la BD
-                newState.lockBoard = true;
-                await setDoc(gameDocRef, newState);
-
-                // Solo el jugador que hizo el movimiento ejecuta la lógica de verificación después del timeout
-                const idx1 = newState.flippedCards[0];
-                const idx2 = newState.flippedCards[1];
-                const val1 = newState.board[idx1];
-                const val2 = newState.board[idx2];
-
-                setTimeout(async () => {
-                    // Refrescar el estado desde la variable global más reciente por seguridad
-                    let finalState = JSON.parse(JSON.stringify(globalGameState));
-                    finalState.flippedCards = [];
-                    finalState.lockBoard = false;
-
-                    if (val1 === val2) {
-                        // ¡Coincidencia!
-                        finalState.cardStates[idx1].matched = true;
-                        finalState.cardStates[idx2].matched = true;
-                        
-                        if (myRole === 1) finalState.scores.p1++;
-                        if (myRole === 2) finalState.scores.p2++;
-
-                        // Verificar si ganaron el juego (18 puntos totales)
-                        if (finalState.scores.p1 + finalState.scores.p2 === totalPairs) {
-                            if (finalState.scores.p1 > finalState.scores.p2) {
-                                finalState.winner = 1;
-                                finalState.wins.p1++;
-                            } else if (finalState.scores.p2 > finalState.scores.p1) {
-                                finalState.winner = 2;
-                                finalState.wins.p2++;
-                            } else {
-                                finalState.winner = 'draw';
-                            }
-                        }
-                        // Nota: el turno NO cambia porque acertaron
-                    } else {
-                        // Fallaron
-                        finalState.cardStates[idx1].flipped = false;
-                        finalState.cardStates[idx2].flipped = false;
-                        // Cambiar de turno
-                        finalState.turn = finalState.turn === 1 ? 2 : 1;
-                    }
-
-                    // Actualizar BD con el resultado
-                    await setDoc(gameDocRef, finalState);
-
-                }, 1200); // 1.2 segundos para ver las cartas antes de que pase la acción
-            }
-        }
-
-        // 6. Funciones de Interfaz (Modales)
-        function showWinModal(state) {
+        function showWinModal() {
             const winTitle = document.getElementById('win-title');
             const winMessage = document.getElementById('win-message');
             
-            if (state.winner === 1) {
+            if (gameState.winner === 1) {
                 winTitle.innerText = "¡Felicidades!";
-                winMessage.innerHTML = `¡<span class="text-rose-500 font-bold">Angy</span> has Ganado! <br><br> <span class="text-sm text-gray-500">No olvides que Jonas te ama ❤️</span>`;
-            } else if (state.winner === 2) {
+                winMessage.innerHTML = `¡<span class="text-pink-500 font-bold">Angy</span> has Ganado! <br><br> <span class="text-sm text-gray-500">No olvides que Jonas te ama ❤️</span>`;
+            } else if (gameState.winner === 2) {
                 winTitle.innerText = "¡Felicidades!";
                 winMessage.innerHTML = `¡<span class="text-blue-500 font-bold">Jonas</span> has Ganado! <br><br> <span class="text-sm text-gray-500">No olvides que Angy te ama ❤️</span>`;
-            } else if (state.winner === 'draw') {
+            } else if (gameState.winner === 'draw') {
                 winTitle.innerText = "¡Un Empate Perfecto!";
                 winMessage.innerHTML = `Ambos tienen la misma puntuación. <br><br> <span class="text-sm text-gray-500">Su amor está perfectamente equilibrado ❤️</span>`;
             }
@@ -466,21 +489,17 @@
             winModal.classList.add('flex');
         }
 
-        window.showResetConfirm = () => {
-            resetModal.classList.remove('hidden');
-            resetModal.classList.add('flex');
-        };
-
-        window.hideResetConfirm = () => {
-            resetModal.classList.add('hidden');
-            resetModal.classList.remove('flex');
-        };
-
-        window.confirmReset = () => {
-            hideResetConfirm();
-            initializeBoardOnDB();
-        };
+        function requestReset() {
+            if (myRole === 1) {
+                generateNewBoard();
+            } else {
+                connection.send({ type: 'REQUEST_RESET' });
+                turnIndicator.innerHTML = 'Pidiendo a Angy reiniciar... ⏳';
+            }
+        }
 
     </script>
 </body>
 </html>
+
+
